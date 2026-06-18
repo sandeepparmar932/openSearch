@@ -1,0 +1,27 @@
+version: '3.8'
+
+services:
+  opensearch:
+    image: opensearchproject/opensearch:3.1.0
+    container_name: local-opensearch
+    environment:
+      - discovery.type=single-node
+      - OPENSEARCH_INITIAL_ADMIN_PASSWORD=ComplexPassword@123!
+      - DISABLE_SECURITY_PLUGIN=true
+      - "OPENSEARCH_JAVA_OPTS=-Xms512m -Xmx512m"
+    ports:
+      - "9200:9200" # REST API
+      - "9600:9600" # Performance Analyzer
+
+  opensearch-dashboards:
+    image: opensearchproject/opensearch-dashboards:3.1.0
+    container_name: local-dashboards
+    ports:
+      - "5601:5601" # Dashboard UI Port
+    environment:
+      # Tell the dashboard exactly where to find the database container
+      - OPENSEARCH_HOSTS=http://opensearch:9200
+      # Disable the security UI since we disabled it on the database
+      - DISABLE_SECURITY_DASHBOARDS_PLUGIN=true
+    depends_on:
+      - opensearch # Ensures the database starts before the UI
