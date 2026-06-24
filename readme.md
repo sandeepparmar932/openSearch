@@ -40,5 +40,59 @@ This project provides blazing-fast, typo-tolerant full-text search capabilities 
 | DELETE | `/api/products/{id}` | Delete product from both data stores |
 | GET | `/api/products/search?keyword={text}` | Perform fuzzy full-text search (reads from OpenSearch) |
 
+
+### Architecture Flow: Dual-Write & Advanced Search
+
+The following sequence diagram illustrates the synchronous dual-write process for data ingestion and the fuzzy search process for data retrieval.
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor Client
+    participant Controller as ProductController
+    participant Service as ProductService
+    participant DB as Relational Database (MySQL/H2)
+    participant OSRepo as OpenSearchRepository
+    participant SearchService as AdvancedSearchService
+    participant OS as OpenSearch Cluster
+
+    Note over Client, OS: Flow 1: Synchronous Dual-Write (Data Ingestion)
+    Client->>Controller: POST /api/products
+    Controller->>Service: createProduct(ProductEntity)
+    
+    rect rgb(230, 245, 255)
+        Note right of Service: 1. Save to Source of Truth
+        Service->>DB: jpaRepository.save(ProductEntity)
+        DB-->>Service: Saved ProductEntity (with auto-generated ID)
+    end
+    
+    Service->>Service: Map ProductEntity to ProductDocument
+    
+    rect rgb(230, 255, 230)
+        Note right of Service: 2. Sync to Search Index
+        Service->>OSRepo: searchRepository.save(ProductDocument)
+        OSRepo->>OS: Index Document (REST API Call)
+        OS-->>OSRepo: 201 Created
+        OSRepo-->>Service: Document Indexed Successfully
+    end
+    
+    Service-->>Controller: Saved ProductEntity
+    Controller-->>Client: 201 Created (JSON Response)
+
+    Note over Client, OS: Flow 2: Advanced Fuzzy Search (Data Retrieval)
+    Client->>Controller: GET /api/products/search?keyword=laptop
+    Controller->>SearchService: advancedSearch("laptop")
+    
+    rect rgb(255, 245, 230)
+        Note right of SearchService: 3. Query the Search Engine directly
+        SearchService->>OS: multiMatchQuery (Fuzziness.AUTO)
+        OS-->>SearchService: Return SearchHits (Matched Documents & Relevance Scores)
+    end
+    
+    SearchService->>SearchService: Map SearchHits to List<ProductDocument>
+    
+    SearchService-->>Controller: List<ProductDocument>
+    Controller-->>Client: 200 OK (JSON List)
+
 ### Future Enhancements
 * Transition from synchronous dual-writes to an asynchronous event-driven sync using Apache Kafka or Debezium (CDC).
