@@ -43,18 +43,15 @@ This project provides blazing-fast, typo-tolerant full-text search capabilities 
 
 ### Architecture Flow: Dual-Write & Advanced Search
 
-The following sequence diagram illustrates the synchronous dual-write process for data ingestion and the fuzzy search process for data retrieval.
-
-```mermaid
 sequenceDiagram
-    autonumber
-    actor Client
-    participant Controller as ProductController
-    participant Service as ProductService
-    participant DB as Relational Database (MySQL/H2)
-    participant OSRepo as OpenSearchRepository
-    participant SearchService as AdvancedSearchService
-    participant OS as OpenSearch Cluster
+autonumber
+actor Client
+participant Controller as ProductController
+participant Service as ProductService
+participant DB as Relational Database (MySQL/H2)
+participant OSRepo as OpenSearchRepository
+participant SearchService as AdvancedSearchService
+participant OS as OpenSearch Cluster
 
     Note over Client, OS: Flow 1: Synchronous Dual-Write (Data Ingestion)
     Client->>Controller: POST /api/products
@@ -93,6 +90,5 @@ sequenceDiagram
     
     SearchService-->>Controller: List<ProductDocument>
     Controller-->>Client: 200 OK (JSON List)
-
 ### Future Enhancements
 * Transition from synchronous dual-writes to an asynchronous event-driven sync using Apache Kafka or Debezium (CDC).
